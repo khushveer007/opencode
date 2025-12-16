@@ -37,10 +37,6 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
 )
 
 const tags = [Script.channel]
-if (!Script.preview) {
-  const major = Script.version.split(".")[0]
-  tags[0] = `latest-${major}`
-}
 
 const tasks = Object.entries(binaries).map(async ([name]) => {
   if (process.platform !== "win32") {
@@ -248,8 +244,8 @@ if (!Script.preview) {
   await $`cd ./dist/homebrew-tap && git push`
 
   const image = "ghcr.io/sst/opencode"
-  await $`docker build -t ${image}:${Script.version} .`
-  await $`docker push ${image}:${Script.version}`
-  await $`docker tag ${image}:${Script.version} ${image}:latest`
-  await $`docker push ${image}:latest`
+  const platforms = "linux/amd64,linux/arm64"
+  const tags = [`${image}:${Script.version}`, `${image}:latest`]
+  const tagFlags = tags.flatMap((t) => ["-t", t])
+  await $`docker buildx build --platform ${platforms} ${tagFlags} --push .`
 }

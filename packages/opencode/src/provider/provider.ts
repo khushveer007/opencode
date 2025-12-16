@@ -318,6 +318,16 @@ export namespace Provider {
         },
       }
     },
+    cerebras: async () => {
+      return {
+        autoload: false,
+        options: {
+          headers: {
+            "X-Cerebras-3rd-Party-Integration": "opencode",
+          },
+        },
+      }
+    },
   }
 
   export const Model = z
@@ -330,6 +340,7 @@ export namespace Provider {
         npm: z.string(),
       }),
       name: z.string(),
+      family: z.string().optional(),
       capabilities: z.object({
         temperature: z.boolean(),
         reasoning: z.boolean(),
@@ -381,6 +392,7 @@ export namespace Provider {
       status: z.enum(["alpha", "beta", "deprecated", "active"]),
       options: z.record(z.string(), z.any()),
       headers: z.record(z.string(), z.string()),
+      release_date: z.string(),
     })
     .meta({
       ref: "Model",
@@ -407,6 +419,7 @@ export namespace Provider {
       id: model.id,
       providerID: provider.id,
       name: model.name,
+      family: model.family,
       api: {
         id: model.id,
         url: provider.api!,
@@ -458,6 +471,7 @@ export namespace Provider {
         },
         interleaved: model.interleaved ?? false,
       },
+      release_date: model.release_date,
     }
   }
 
@@ -590,6 +604,8 @@ export namespace Provider {
             output: model.limit?.output ?? existingModel?.limit?.output ?? 0,
           },
           headers: mergeDeep(existingModel?.headers ?? {}, model.headers ?? {}),
+          family: model.family ?? existingModel?.family ?? "",
+          release_date: model.release_date ?? existingModel?.release_date ?? "",
         }
         parsed.models[modelID] = parsedModel
       }
@@ -846,7 +862,7 @@ export namespace Provider {
     return info
   }
 
-  export async function getLanguage(model: Model) {
+  export async function getLanguage(model: Model): Promise<LanguageModelV2> {
     const s = await state()
     const key = `${model.providerID}/${model.id}`
     if (s.models.has(key)) return s.models.get(key)!
